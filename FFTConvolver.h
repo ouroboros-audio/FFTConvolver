@@ -77,6 +77,11 @@ public:
   * @brief Resets the convolver and discards the set impulse response
   */
   void reset();
+
+  /**
+  * @brief Clears the input history and overlap while keeping the impulse response
+  */
+  void resetInput();
   
 private:
   size_t _blockSize;

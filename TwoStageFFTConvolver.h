@@ -80,6 +80,9 @@ public:
   * @brief Resets the convolver and discards the set impulse response
   */
   void reset();
+
+  /** Clears internal buffers while keeping the impulse response. */
+  void cleanPipeline();
   
 protected:
   /**
