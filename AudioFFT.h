@@ -29,8 +29,10 @@
 * Features:
 *
 * - Real-complex FFT and complex-real inverse FFT for power-of-2-sized real data.
+*   The non-Apple muFFT backend requires FFT sizes of at least 4.
 *
-* - Uniform interface to different FFT implementations (currently Ooura, FFTW3 and Apple Accelerate).
+* - Uniform interface to the muFFT backend on non-Apple platforms and
+*   Apple Accelerate on Apple platforms.
 *
 * - Complex data is handled in "split-complex" format, i.e. there are separate
 *   arrays for the real and imaginary parts which can be useful for SIMD optimizations
@@ -45,11 +47,10 @@
 *
 * How to use it in your project:
 *
-* - Add the .h and .cpp file to your project - that's all.
+* - Add the .h and .cpp file to your project.
 *
-* - To get extra speed, you can link FFTW3 to your project and define
-*   AUDIOFFT_FFTW3 (however, please check whether your project suits the
-*   according license).
+* - On non-Apple platforms, also compile the bundled muFFT sources and make
+*   `muFFT/fft.h` available on the include path.
 *
 * - To get the best speed on Apple platforms, you can link the Apple
 *   Accelerate framework to your project and define
@@ -125,7 +126,7 @@ namespace audiofft
 
     /**
      * @brief Initializes the FFT object
-     * @param size Size of the real input (must be power 2)
+     * @param size Size of the real input (must be power 2; the non-Apple muFFT backend requires at least 4)
      */
     void init(size_t size);
 
@@ -156,12 +157,6 @@ namespace audiofft
     std::unique_ptr<detail::AudioFFTImpl> _impl;
   };
 
-
-  /**
-   * @deprecated
-   * @brief Let's keep an AudioFFTBase type around for now because it has been here already in the 1st version in order to avoid breaking existing code.
-   */
-  typedef AudioFFT AudioFFTBase;
 
 } // End of namespace
 

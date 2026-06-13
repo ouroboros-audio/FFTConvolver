@@ -121,12 +121,20 @@ bool TwoStageFFTConvolver::init(size_t headBlockSize,
   _tailBlockSize = NextPowerOf2(tailBlockSize);
 
   const size_t headIrLen = std::min(irLen, _tailBlockSize);
-  _headConvolver.init(_headBlockSize, ir, headIrLen);
+  if (!_headConvolver.init(_headBlockSize, ir, headIrLen))
+  {
+    reset();
+    return false;
+  }
 
   if (irLen > _tailBlockSize)
   {
     const size_t conv1IrLen = std::min(irLen-_tailBlockSize, _tailBlockSize);
-    _tailConvolver0.init(_headBlockSize, ir+_tailBlockSize, conv1IrLen);
+    if (!_tailConvolver0.init(_headBlockSize, ir+_tailBlockSize, conv1IrLen))
+    {
+      reset();
+      return false;
+    }
     _tailOutput0.resize(_tailBlockSize);
     _tailPrecalculated0.resize(_tailBlockSize);
   }
@@ -134,7 +142,11 @@ bool TwoStageFFTConvolver::init(size_t headBlockSize,
   if (irLen > 2 * _tailBlockSize)
   {
     const size_t tailIrLen = irLen - (2*_tailBlockSize);
-    _tailConvolver.init(_tailBlockSize, ir+(2*_tailBlockSize), tailIrLen);
+    if (!_tailConvolver.init(_tailBlockSize, ir+(2*_tailBlockSize), tailIrLen))
+    {
+      reset();
+      return false;
+    }
     _tailOutput.resize(_tailBlockSize);
     _tailPrecalculated.resize(_tailBlockSize);
     _backgroundProcessingInput.resize(_tailBlockSize);

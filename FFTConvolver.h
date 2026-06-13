@@ -84,6 +84,9 @@ public:
   void resetInput();
   
 private:
+#ifdef AUDIOFFT_MUFFT
+  struct MufftBackend;
+#endif
   size_t _blockSize;
   size_t _segSize;
   size_t _segCount;
@@ -98,6 +101,9 @@ private:
   size_t _current;
   SampleBuffer _inputBuffer;
   size_t _inputBufferFill;
+#ifdef AUDIOFFT_MUFFT
+  std::unique_ptr<MufftBackend> _mufftBackend;
+#endif
 
   // Prevent uncontrolled usage
   FFTConvolver(const FFTConvolver&);
