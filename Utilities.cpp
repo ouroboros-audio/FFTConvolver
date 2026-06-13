@@ -21,9 +21,69 @@
 
 #include "Utilities.h"
 
+#if ATHANOR_USE_HIGHWAY
+  #undef HWY_TARGET_INCLUDE
+  #define HWY_TARGET_INCLUDE "FFTConvolver/Utilities.cpp"
+  #include "hwy/foreach_target.h"
+  #include "hwy/highway.h"
+
+HWY_BEFORE_NAMESPACE();
+namespace fftconvolver
+{
+namespace HWY_NAMESPACE
+{
+namespace
+{
+  namespace hn = hwy::HWY_NAMESPACE;
+
+  HWY_ATTR void ComplexMultiplyAccumulateHWY(Sample* FFTCONVOLVER_RESTRICT re,
+                                             Sample* FFTCONVOLVER_RESTRICT im,
+                                             const Sample* FFTCONVOLVER_RESTRICT reA,
+                                             const Sample* FFTCONVOLVER_RESTRICT imA,
+                                             const Sample* FFTCONVOLVER_RESTRICT reB,
+                                             const Sample* FFTCONVOLVER_RESTRICT imB,
+                                             const size_t len)
+  {
+    const hn::ScalableTag<float> df;
+    const size_t lanes = hn::Lanes(df);
+    size_t i = 0;
+    for (; i + lanes <= len; i += lanes)
+    {
+      const auto vra = hn::LoadU(df, reA + i);
+      const auto via = hn::LoadU(df, imA + i);
+      const auto vrb = hn::LoadU(df, reB + i);
+      const auto vib = hn::LoadU(df, imB + i);
+      const auto vrr = hn::LoadU(df, re + i);
+      const auto vri = hn::LoadU(df, im + i);
+
+      const auto real = (vrr + vra * vrb) - via * vib;
+      const auto imag = (vri + vra * vib) + via * vrb;
+
+      hn::StoreU(real, df, re + i);
+      hn::StoreU(imag, df, im + i);
+    }
+
+    for (; i < len; ++i)
+    {
+      re[i] += reA[i] * reB[i] - imA[i] * imB[i];
+      im[i] += reA[i] * imB[i] + imA[i] * reB[i];
+    }
+  }
+} // namespace
+} // namespace HWY_NAMESPACE
+} // namespace fftconvolver
+HWY_AFTER_NAMESPACE();
+#endif
+
 
 namespace fftconvolver
 {
+
+#if !ATHANOR_USE_HIGHWAY || HWY_ONCE
+
+#if ATHANOR_USE_HIGHWAY
+HWY_EXPORT(ComplexMultiplyAccumulateHWY);
+#endif
 
 bool SSEEnabled()
 {
@@ -71,7 +131,9 @@ void ComplexMultiplyAccumulate(Sample* FFTCONVOLVER_RESTRICT re,
                                const Sample* FFTCONVOLVER_RESTRICT imB,
                                const size_t len)
 {
-#if defined(FFTCONVOLVER_USE_SSE)
+#if ATHANOR_USE_HIGHWAY
+  HWY_DYNAMIC_DISPATCH(ComplexMultiplyAccumulateHWY)(re, im, reA, imA, reB, imB, len);
+#elif defined(FFTCONVOLVER_USE_SSE)
   const size_t end4 = 4 * (len / 4);
   for (size_t i=0; i<end4; i+=4)
   {
@@ -113,5 +175,7 @@ void ComplexMultiplyAccumulate(Sample* FFTCONVOLVER_RESTRICT re,
   }
 #endif
 }
+
+#endif // !ATHANOR_USE_HIGHWAY || HWY_ONCE
 
 } // End of namespace fftconvolver
